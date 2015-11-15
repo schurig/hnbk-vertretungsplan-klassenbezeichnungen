@@ -21,7 +21,7 @@ def uids
   end
 
   p "Finished fetching #{uids.count} uids.."
-  return uids
+  uids
 end
 
 def classes
@@ -32,18 +32,25 @@ def classes
   uids_cached.each_with_index do |uid, index|
     puts  "Fetching class name #{index + 1}/#{uids_cached.count}"
     doc = Nokogiri::HTML(open("#{@page_url}/#{uid}"))
-    doc.css('font').each do |font_tag|
+
+    font_tags = doc.css('html body.tt center font')
+    font_tags[0..2].each do |font_tag|
       color = font_tag.attributes['color'].to_s
       size = font_tag.attributes['size'].to_s
-      if color == '#0000FF' && size == '6'
+      font_face = font_tag.attributes['face'].to_s
+      if font_face == 'Arial' && size == '5'
         content = font_tag.text
         class_name = content.gsub("\r\n", '').gsub("\u00A0", '')
         classes.push(name: class_name, uid: uid)
       end
     end
+
+    if font_tags.empty?
+      puts "no class title found on: #{@page_url}/#{uid}"
+    end
   end
 
-  return classes
+  classes
 end
 
 def dump_data
@@ -53,6 +60,7 @@ def dump_data
   File.open(@dump_file, 'w') do |f|
     f.write(classes_data.to_json)
   end
+  puts "saved #{classes_data.size} entries to file"
 end
 
 dump_data
